@@ -1,1 +1,0 @@
-chr	start	end	refGenes	Cosmic	Genes260	A549_SEA	CFS	Blacklist
