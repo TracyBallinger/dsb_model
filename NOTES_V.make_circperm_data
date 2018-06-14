@@ -5,8 +5,6 @@ scripts=$PROJECTDIR/scripts/circperm_scripts
 # Make annotations.list file 
 ls $PROJECTDIR/cancer_genes/*.bed | awk '{n=split($1, a, "/"); print a[n]"\t"$1}' | sed 's/.bed//' > annotations.list
 
-# Make bedfiles for chromatin states
-
 # Send off circular permutation jobs 
 cd $PROJECTDIR/dscores
 $scripts/run_subset_enrichment.sh nhek.icgc_carc.sets annotations.list 

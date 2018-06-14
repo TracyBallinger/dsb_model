@@ -1,7 +1,24 @@
+
+#####################################################
 # These are commands used to create 50kb resolution bedgraph files for various DSB datasets 
  
+#####################################################
+# For NHEK cells, from Lensing et al. 
 > qsub -cwd -j y -b y -N wget -l h_rt=2:00:00 -l h_vmem=1G "wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE78nnn/GSE78172/suppl/GSE78172_RAW.tar"
 > tar -xvf GSE78172_RAW.tar
-> 
-> qsub -v BEDGRAPH=GSM2068755_BREAK_n1.bedGraph.gz bedgraph_to_bigwig.sh
-> qsub -v BEDFILE=hg19_50kb_bins.bed -v BIGWIGS=tmplist -v OUT=GSM2068755_hg19_20kb_bins.txt ../scripts/score_bedfile_with_bigwigs.sh
+> qsub -v BEDGRAPH=GSM2068755_BREAK_n1.bedGraph.gz -v CHROMSIZES=hg19_chr.lengths scripts/bedgraph_to_bigwig.sh
+> qsub -v BEDGRAPH=GSM2068756_BREAK_n2.bedGraph.gz -v CHROMSIZES=hg19_chr.lengths scripts/bedgraph_to_bigwig.sh
+> qsub -v BEDGRAPH=GSM2068757_BLESS_n1.bedGraph.gz -v CHROMSIZES=hg19_chr.lengths scripts/bedgraph_to_bigwig.sh
+> qsub -v BEDGRAPH=GSM2068758_BLESS_n2.bedGraph.gz -v CHROMSIZES=hg19_chr.lengths scripts/bedgraph_to_bigwig.sh
+> ls GSM20687*.bigWig > tmplist
+> qsub -v BEDFILE=hg19_50kb_bins.bed -v BIGWIGS=tmplist -v OUT=dsbcapture_hg19_50kb_bwScores.tab scripts/feature_scripts/score_bedfile_with_bigwigs.sh
+
+Combine the replicates for the BLESS and BREAK datasets 
+> head -1 dsbcapture_hg19_50kb_bwScores.tab | cut -f1-4 > tmph
+> echo -e "GSM20687556_BREAK\tGSM20687578_BLESS" | paste tmph - > tmph2
+> sed 1d dsbcapture_hg19_50kb_bwScores.tab | awk '{a=$5+$6; b=$7+$8; print $1"\t"$2"\t"$3"\t"$4"\t"a/2"\t"b/2}' | cat tmph2 - > dsbcapture_hg19_50kb_combScores.tab
+> cut -f1-5 dsbcapture_hg19_50kb_combScores.tab > data/input_data/NHEK_BREAK_50kb.bedgraph
+> cut -f1-4,6 dsbcapture_hg19_50kb_combScores.tab > data/input_data/NHEK_BLESS_50kb.bedgraph
+
+#######################################################
+# Need to fill in the process for the K562 and MCF7 cells
