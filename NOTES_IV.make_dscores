@@ -1,0 +1,43 @@
+
+##################################################
+# Create pvalues for SV breaks and DSB predictions and combine them to a d-score 
+PROJECTDIR=./
+scripts=$PROJECTDIR/scripts
+
+# For nhek.icgc_carc
+pfile=$PROJECTDIR/randforest_results/NHEK_BREAK/predicted.txt
+svfile=$PROJECTDIR/cancer_SVcnts/icgc/carc_realcnts.txt
+cut -f1-3,5 $svfile | sed 's/any/realcnt/' > tmprealcnt.txt
+svfile=tmprealcnt.txt 
+Rscript $scripts/calculate_dscores.R $pfile 0.75 $svfile dscores/nhek.icgc_carc.dlogp.txt
+
+# For nhek.tcga_scca
+pfile=$PROJECTDIR/randforest_results/NHEK_BREAK/predicted.txt
+svfile=$PROJECTDIR/cancer_SVcnts/tcga/tcga_bytype_realcnts.txt
+cut -f1-3,15 $svfile | sed 's/TCGA-SCCA.all/realcnt/' > tmprealcnt.txt
+svfile=tmprealcnt.txt
+Rscript $scripts/calculate_dscores.R $pfile 0.75 $svfile dscores/nhek.tcga_scca.dlogp.txt
+
+# For mcf7.icgc_brca
+pfile=$PROJECTDIR/randforest_results/MCF7_BLISS/predicted.txt
+head -1 $pfile > tmph
+sed 1d $pfile | awk 'BEGIN{OFS="\t"}{$5=$5*1000; print $0}' | cat tmph - > tmppred.txt
+pfile=tmppred.txt
+svfile=$PROJECTDIR/cancer_SVcnts/icgc/brca_realcnts.txt
+cut -f1-3,5 $svfile | sed 's/any/realcnt/' > tmprealcnt.txt
+svfile=tmprealcnt.txt
+Rscript $scripts/calculate_dscores.R $pfile 0.5 svfile dscores/tmp.mcf7.icgc_brca.dlogp.txt
+head -1 dscores/tmp.mcf7.icgc_brca.dlogp.txt > tmph 
+sed 1d dscores/tmp.mcf7.icgc_brca.dlogp.txt | awk 'BEGIN{OFS="\t"}{$5=$5/1000; print $0}' | cat tmph - > dscores/mcf7.icgc_brca.dlogp.txt 
+
+# clean up 
+rm tmph tmprealcnt.txt tmppred.txt
+rm dscores/tmp.mcf7.icgc_brca.dlogp.txt 
+
+##################################################
+# get the region subsets based on categories. 
+Rscript $scripts/get_dscore_subsets.R dscores/nhek.icgc_carc.dlogp.txt 0.01 0.5 
+Rscript $scripts/get_dscore_subsets.R dscores/nhek.tcga_scca.dlogp.txt 0.01 0.5 
+Rscript $scripts/get_dscore_subsets.R dscores/mcf7.icgc_brca.dlogp.txt 0.01 0.0001 
+
+

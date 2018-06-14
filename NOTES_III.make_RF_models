@@ -1,0 +1,36 @@
+
+# Notes making Random Forest models using R 
+
+# Run this on the cluster because it takes a while.  
+# Below is making the NHEK model.  
+# Repeat for other cell lines, replacing NHEK_BREAK with  
+# NHEK_BLESS, MCF7_BLISS, K562_BLISS, etc. 
+# and the FEATURES with the appropriate *_features.tab files
+
+qsub -v FEATURES=NHEK_features.tab \
+	-v BEDGRAPH=NHEK_BREAK_50kb.bedgraph \
+	-v OUTDIR=randforest_results/NHEK_BREAK \
+	run_randomForest.sh 
+
+# Run multiple models so you can get error bars on the variable importance
+for j in 1 2 3 4 5 6 7 8 9; do
+	myoutdir=randforest_results/NHEK_BREAK/NHEK_BREAK.$j
+	mkdir $myoutdir
+	qsub -v FEATURES=input_data/NHEK_features.tab \
+		-v BEDGRAPH=input_data/NEHK_BREAK_50kb.bedgraph \
+		-v OUTDIR=$myoutdir \
+	scripts/run_randomForest.sh
+done
+
+# Want to combine the variable importance from multiple random forests
+cut -f1,2 randforest_results/NHEK_BREAK/variable_importance.txt | sort > tmp
+for f in `ls -d randforest_results/NHEK_BREAK/NHEK_BREAK.*`; do 
+	sort $f/variable_importance.txt \
+	| cut -f2 | paste tmp - > tmp2 
+	mv tmp2 tmp
+done
+mv tmp randforest_results/NHEK_BREAK/var_imp.txt
+
+# clean up
+rm -r randforest_results/NHEK_BREAK/NHEK_BREAK.*
+ 

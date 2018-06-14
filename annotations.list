@@ -1,0 +1,5 @@
+fragile_sites	/home/tballing/bioinfsvice/DSB_model/SV_enrich/cancer_genes/all_common_fragile_sites_NCBI.bed
+A549_SEA	/home/tballing/bioinfsvice/DSB_model/SV_enrich/cancer_genes/A549_SEA.bed.gz
+cancerGenes260	/home/tballing/bioinfsvice/DSB_model/SV_enrich/cancer_genes/cancerGenes260.bed.gz
+cosmic_refGene	/home/tballing/bioinfsvice/DSB_model/SV_enrich/cancer_genes/cosmic_refGene.bed.gz
+refGene	/exports/igmm/eddie/NextGenResources/annotation/hg19/refGene.bed.gz

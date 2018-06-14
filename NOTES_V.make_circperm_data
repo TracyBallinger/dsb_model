@@ -1,0 +1,22 @@
+###############################################
+PROJECTDIR=./
+scripts=$PROJECTDIR/scripts/circperm_scripts
+
+# Make annotations.list file 
+ls $PROJECTDIR/cancer_genes/*.bed | awk '{n=split($1, a, "/"); print a[n]"\t"$1}' | sed 's/.bed//' > annotations.list
+
+# Make bedfiles for chromatin states
+
+# Send off circular permutation jobs 
+cd $PROJECTDIR/dscores
+$scripts/run_subset_enrichment.sh nhek.icgc_carc.sets annotations.list 
+$scripts/gather_permute_data.sh nhek.icgc_carc/circperm nhek.icgc_carc/circ_genes.dat
+rm -r nhek.icgc_carc/circperm
+
+# see NOTES.make_chromHMM_states for how to make .bed files of the chromHMM states for NHEK cells
+ls $PROJECTDIR/chromHMM_states/Nhek/*.bed | awk '{n=split($1, a, "/"); print a[n]"\t"$1}' | sed 's/.bed.gz//1' > nhek_chromstates.list 
+$scripts/run_subset_enrichment.sh nhek.icgc_carc.sets nhek_chromstates.list 
+$scripts/gather_permute_data.sh nhek.icgc_carc/circperm nhek.icgc_carc/circ_chrom.dat
+rm -r nhek.icgc_carc/circperm
+
+

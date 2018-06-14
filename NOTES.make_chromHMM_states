@@ -1,0 +1,23 @@
+mkdir chromHMM_states
+cd chromHMM_states
+# To create chromatin state bedfile list for chromHMM annotation 
+	- Download the chromHMM files for Hmec cells: 
+> mkdir Hmec
+> cd Hmec
+> qsub -cwd -b y -N wget -l h_rt=0:30:00 -l h_vmem=1G "wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/wgEncodeBroadHmmHmecHMM.txt.gz"
+> gzip -dc wgEncodeBroadHmmHmecHMM.txt.gz | awk 'BEGIN{OFS="\t"; FS="\t"}{print $2,$3,$4,$5}' > wgEncodeBroadHmmHmecHMM.bed
+> bedfile=wgEncodeBroadHmmHmecHMM.bed
+> states=(`cut -f4 $bedfile | sort -u`)
+> for s in ${states[@]}; do s=`echo $s | awk '{split($1, a, "/"); print a[1]}'`; echo $s; grep $s $bedfile > $s.bed; done
+> cd ../../
+
+# For NHEK cells 
+> cd chromHMM_states
+> mkdir Nhek
+> cd Nhek
+> qsub -cwd -b y -N wget -l h_rt=0:30:00 -l h_vmem=1G "wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/wgEncodeBroadHmmNhekHMM.txt.gz"
+> gzip -dc wgEncodeBroadHmmNhekHMM.txt.gz | awk 'BEGIN{OFS="\t"; FS="\t"}{print $2,$3,$4,$5}' > wgEncodeBroadHmmNhekHMM.bed
+> bedfile=wgEncodeBroadHmmNhekHMM.bed
+> states=(`cut -f4 $bedfile | sort -u`)
+> for s in ${states[@]}; do s=`echo $s | awk '{split($1, a, "/"); print a[1]}'`; echo $s; grep $s $bedfile > $s.bed; done
+	

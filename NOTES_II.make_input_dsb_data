@@ -1,0 +1,7 @@
+# These are commands used to create 50kb resolution bedgraph files for various DSB datasets 
+ 
+> qsub -cwd -j y -b y -N wget -l h_rt=2:00:00 -l h_vmem=1G "wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE78nnn/GSE78172/suppl/GSE78172_RAW.tar"
+> tar -xvf GSE78172_RAW.tar
+> 
+> qsub -v BEDGRAPH=GSM2068755_BREAK_n1.bedGraph.gz bedgraph_to_bigwig.sh
+> qsub -v BEDFILE=hg19_50kb_bins.bed -v BIGWIGS=tmplist -v OUT=GSM2068755_hg19_20kb_bins.txt ../scripts/score_bedfile_with_bigwigs.sh

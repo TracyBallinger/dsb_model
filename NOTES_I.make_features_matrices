@@ -1,0 +1,78 @@
+#########################################
+# These are the steps for making the feature matrix .tab files. 
+
+PROJECTDIR=./ #Set to project directory 
+OUTDIR=$PROJECTDIR/input_data  # where you want the output to go
+SCRATCH=~/scratch # set this to a scratch directory
+fscripts=$PROJECTDIR/scripts/feature_scripts
+
+cd $PROJECTDIR
+#########################################
+# 1. Make a bed file of 50kb regions from hg19
+
+#########################################
+# 2. Download Encode tracks from UCSC for the three cell lines
+$fscripts/run_download_ucscfiles.sh
+# This needs
+# - NHEK_ext_bigwigs.list 
+# - K562_bigwigs.list 
+# - MCF7_bigwigs.list 
+
+#########################################
+# 3. Score each 50kb bin in hg19 with the bigwigs 
+cd $OUTDIR
+$fscripts/run_score_bedfile_with_bigwigs.sh
+# This creates 
+# - NHEK_bigwigs.score.tab
+# - NHEK_ext_bigwigs.scores.tab 
+# - K562_bigwigs.scores.tab 
+# - MCF7_bigwigs.scores.tab 
+
+###############################################
+# 4. Add the G-quadruplex data to the features
+cd $OUTDIR
+# 4.1 Download and process G-quadruplex data 
+$fscripts/get_G-quadruplex_data.sh # creates GSE63874_Na_PDS_12_both.bigWig
+
+# 4.2 Score the 50kb bins with G-quadruplex data.
+ls GSE63874_Na_PDS_12_both.bigWig > tmplist
+qsub -v BEDFILE=$PROJECTDIR/hg19_50kb_bins.bed -v BIGWIGS=tmplist -v OUT=hg19_50kb_G-quad_scores.tab $fscripts/score_bedfile_with_bigwigs.sh 
+
+# 4.3 Add the G-quadruplex data to the feature matrices 
+cut -f5 hg19_50kb_G-quad_scores.tab | paste NHEK_bigwigs.score.tab - | sed 's/nan/0/g' > NHEK_features.tab
+cut -f5 hg19_50kb_G-quad_scores.tab | paste K562_bigwigs.score.tab - | sed 's/nan/0/g' > K562_features.tab
+cut -f5 hg19_50kb_G-quad_scores.tab | paste MCF7_bigwigs.score.tab - | sed 's/nan/0/g' > MCF7_features.tab
+cut -f5 hg19_50kb_G-quad_scores.tab | paste NHEK_ext_bigwigs.score.tab - | sed 's/nan/0/g' > NHEK_ext_features.tab
+
+# 4.2 Clean up intermediates 
+rm NHEK_bigwigs.score.tab
+rm MCF7_bigwigs.score.tab
+rm K562_bigwigs.score.tab
+rm NHEK_ext_bigwigs.score.tab
+rm tmplist
+
+###############################################
+# 5. Hi-C eigenvector data 
+escripts=$PROJECTDIR/scripts/feature_scripts/eigen_scripts
+
+# 5.1 Download hic data for NHEK
+# Download to a scratch directory because they are very big. 
+cd $SCRATCH
+$escripts/download_rao_hic_files.sh # Downloads GSE63525_NHEK_combined.hic.gz
+
+# 5.2 Make bedfiles of the eigenvector values at 50kb resolution. 
+cd $OUTDIR
+qsub -v HIC=$SCRATCH/GSE63525_NHEK_combined.hic.gz -v OUTPUT=NHEK.eigens.txt $escripts/run_juicer.sh 
+qsub -v EIG=NHEK.eigens.txt -v OUTPUT=NHEK.eigens.bedGraph $escripts/eigens_to_bigwigs.sh 
+ls NHEK.eigens.bedGraph > tmpbw.list
+qsub -v BEDFILE=$PROJECTDIR/hg19_50kb_bins.bed -v BIGWIGS=tmpbw.list -v OUT=NHEK_eigen_scores.tab $fscripts/score_bedfile_with_bigwigs.sh 
+
+# 5.2 Add the Hi-C eigenvectors to the extended NHEK model 
+cut -f5 NHEK_eigen_scores.tab | paste NHEK_ext_features.tab -  > tmp
+mv tmp NHEK_ext_features.tab
+
+# 5.3 Clean up intermediate files 
+rm $SCRATCH/GSE63525_NHEK_combined.hic.gz 
+rm NHEK.eigens.txt NHEK.eigens.bedGraph 
+rm NHEK.eigen.scores.tab
+rm tmp*
