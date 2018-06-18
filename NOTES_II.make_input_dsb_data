@@ -13,7 +13,7 @@
 > ls GSM20687*.bigWig > tmplist
 > qsub -v BEDFILE=hg19_50kb_bins.bed -v BIGWIGS=tmplist -v OUT=dsbcapture_hg19_50kb_bwScores.tab scripts/feature_scripts/score_bedfile_with_bigwigs.sh
 
-Combine the replicates for the BLESS and BREAK datasets 
+# Combine the replicates for the BLESS and BREAK datasets 
 > head -1 dsbcapture_hg19_50kb_bwScores.tab | cut -f1-4 > tmph
 > echo -e "GSM20687556_BREAK\tGSM20687578_BLESS" | paste tmph - > tmph2
 > sed 1d dsbcapture_hg19_50kb_bwScores.tab | awk '{a=$5+$6; b=$7+$8; print $1"\t"$2"\t"$3"\t"$4"\t"a/2"\t"b/2}' | cat tmph2 - > dsbcapture_hg19_50kb_combScores.tab
@@ -21,4 +21,19 @@ Combine the replicates for the BLESS and BREAK datasets
 > cut -f1-4,6 dsbcapture_hg19_50kb_combScores.tab > data/input_data/NHEK_BLESS_50kb.bedgraph
 
 #######################################################
-# Need to fill in the process for the K562 and MCF7 cells
+# BLISS experiments for K562 and MCF7 cells
+# The fastq files for the BLISS experiments were processed using the pipeline in scripts/bliss_scripts/bliss_align.sh 
+# This pipeline generates bedgraph files with the number of DSB detected per basepair across the genome.  
+# These bedgraph files were changed to bigwigs using bedGraphToBigWig: 
+> label=`basename $f .bedgraph.gz`
+> zcat -dc $f | sed '/chr/!s/^/chr/' | sort -k1,1 -k2,2n > $label.sorted.bedGrap
+h
+> bedGraphToBigWig $label.sorted.bedGraph $chromsizes $label.bigWig
+> rm $label.sorted.bedGraph 
+
+# Then score each 50kb with the bigwigs.  Ie- below are commands for K562 experiments. 
+> ls bliss_k562_bicro35-38/rm1??_*_q30_chr-loc-countDifferentUMI.bigWig > k562_bigwigs.list
+> qsub -v BEDFILE=../hg19_50kb_bins.bed -v BIGWIGS=k562_bigwigs.list -v OUT=hg19_50kb_k562_scores.txt scripts/score_bedfile_with_bigwigs.sh
+> gzip -dc hg19_50kb_k562_scores.txt.gz | cut -f1-3,5 > K562_BLISS_50kb.bedgraph
+
+
