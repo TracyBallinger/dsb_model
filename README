@@ -4,4 +4,5 @@ This is a collections of scripts for doing the analysis in "Modelling double str
 
 The NOTES_*.* files describe and contain commands for running the analysis described in the paper.  They are ordered chronologically to match the flow of the manuscript and build upon each other.  
 
-The data.tar.gz file contains all supplementary files for the manuscript.  The NOTES files describe how most of these files were generated and their sources.  
+The data.tar.gz file contains all supplementary files for the manuscript.  The NOTES files describe how most of these files were generated and their sources. 
+ 
