@@ -2,19 +2,28 @@
 PROJECTDIR=./
 scripts=$PROJECTDIR/scripts/circperm_scripts
 
+cd $PROJECTDIR/data/dscores
+
 # Make annotations.list file 
 ls $PROJECTDIR/cancer_genes/*.bed | awk '{n=split($1, a, "/"); print a[n]"\t"$1}' | sed 's/.bed//' > annotations.list
 
 # Send off circular permutation jobs 
-cd $PROJECTDIR/dscores
-$scripts/run_subset_enrichment.sh nhek.icgc_carc.sets annotations.list 
-$scripts/gather_permute_data.sh nhek.icgc_carc/circperm nhek.icgc_carc/circ_genes.dat
-rm -r nhek.icgc_carc/circperm
+$scripts/run_subset_enrichment.sh nhek.icgc_carc.sets genes.list 
+$scripts/gather_permute_data.sh nhek.icgc_carc/circperm.genes nhek.icgc_carc/circ_genes.dat
+rm -r nhek.icgc_carc/circperm.genes
 
 # see NOTES.make_chromHMM_states for how to make .bed files of the chromHMM states for NHEK cells
 ls $PROJECTDIR/chromHMM_states/Nhek/*.bed | awk '{n=split($1, a, "/"); print a[n]"\t"$1}' | sed 's/.bed.gz//1' > nhek_chromstates.list 
 $scripts/run_subset_enrichment.sh nhek.icgc_carc.sets nhek_chromstates.list 
-$scripts/gather_permute_data.sh nhek.icgc_carc/circperm nhek.icgc_carc/circ_chrom.dat
-rm -r nhek.icgc_carc/circperm
+$scripts/gather_permute_data.sh nhek.icgc_carc/circperm.nhek_chromstates nhek.icgc_carc/circ_chrom.dat
+rm -r nhek.icgc_carc/circperm.nhek_chromstates
+
+# Commands for mcf7
+$scripts/circperm_scripts/run_subset_enrichment.sh mcf7.icgc_brca.sets genes.list
+$scripts/circperm_scripts/run_subset_enrichment.sh mcf7.icgc_brca.sets hmec_chromstates.list
+
+$scripts/gather_circ_permute_data.sh mcf7.icgc_brca/circperm.hmec_chromstates mcf7.icgc_brca/circ_chrom.dat
+$scripts/gather_circ_permute_data.sh mcf7.icgc_brca/circperm.genes mcf7.icgc_brca/circ_genes.dat
+
 
 

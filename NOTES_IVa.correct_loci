@@ -1,0 +1,44 @@
+# This step is a correction of the input files to the random forest because in the original files, the chromosomes were in the wrong order.  
+# bigWigAverageOverBed put the output in canonical chromosomal order, so chr2 comes after chr1, but in score_bedfile_with_bigwigs.sh, the loci are ordered lexigraphically, so chr1 is followed by chr10, and then pasted together with the bigWigAverageOverBed output.  To correct this, do the following: 
+
+# NOTE- a smart person would have spotted this sooner and sorted the bigWigAverageOverBed output by id and pasted it to the original bedfile, but I've done it this way to avoid rerunning and recreated all of the analysis.  
+
+# hg19_50kb_bins_sorted.bed has the loci in the correct order. 
+
+cd data/input_data
+for f in *.bedgraph; do 
+	cut -f4 $f | paste hg19_50kb_bins_sorted.bed - > tmp 
+	mv tmp $f
+done
+
+for f in *features.tab; do 
+	cut -f4- $f | paste hg19_50kb_bins_sorted.bed - > tmp 
+	mv tmp $f
+done
+
+cut -f4- hg19_50kb_MapabilityAlign100mer.scores | paste hg19_50kb_bins_sorted.bed - > tmp
+mv tmp hg19_50kb_MapabilityAlign100mer.scores
+
+# Need to reorder the cancer_SVcnts/*/*_realcnts.txt files to match the ordering of the input data files for calculated the dscore. 
+
+chroms=`cut -f1 ../hg19_chr.lengths | head -24`
+
+for f in `ls icgc/*_realcnts.txt`; do
+    head -1 $f > $f.new
+    for c in $chroms; do
+        grep ^"$c	" $f | sort -k2,2n >> $f.new
+    done
+    mv $f.new $f
+done
+
+cd tcga
+head -1 tcga_bytype_realcnts.txt > tmp
+for c in $chroms; do 
+	grep ^"$c	" tcga_bytype_realcnts.txt | sort -k2,2n >> tmp 
+done
+mv tmp tcga_bytype_realcnts.txt 
+
+# Need to reorder the annotations.txt file 
+head -1 ../dscores.old/annotations.txt > annotations.txt
+for c in $chroms; do grep ^"$c	" ../dscores.old/annotations.txt | sort -k2,2n >> annotations.txt ; done
+ 

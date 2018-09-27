@@ -6,8 +6,8 @@
 # Read in command line arguments 
 args <- commandArgs(trailingOnly=TRUE)
 dfile=args[1]
-pcf=args[2]
-predlowcf=args[3]
+pcf=as.numeric(args[2])
+predlowcf=as.numeric(args[3])
 
 datf <- read.table(dfile, header=TRUE)
 
@@ -27,5 +27,5 @@ cancHpredL2 <-datf[(datf$log.p < pvalcf) & (datf$predicted < predlowcf),]
 cancHpredL2$subset="cancHpredL2"
     
 dat2=rbind(cancHpredL, cancHpredH, predHcancL, cancHpredL2)
-write.table(dat2, sub(".dlogp.txt", ".sets", dfile)), quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+write.table(dat2, sub(".dlogp.txt", ".sets", dfile), quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 

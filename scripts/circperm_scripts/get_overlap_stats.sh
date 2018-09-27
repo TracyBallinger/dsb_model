@@ -9,6 +9,12 @@
 #$ -l h_rt=00:30:00
 #$ -j y
 
+TMPDIR=~/scratch
+
+unset MODULEPATH
+. /etc/profile.d/modules.sh 
+module load igmm/apps/BEDTools/2.25.0
+
 function get_bed_stats {
     abed=$1
     bbed=$2

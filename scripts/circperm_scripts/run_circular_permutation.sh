@@ -10,7 +10,12 @@
 #$ -j y
 #$ -pe sharedmem 4
 
-tmpdir=$SCRATCH/$JOB_NAME/$JOB_ID.$SGE_TASK_ID
+PROJECTDIR=/home/tballing/bioinfsvice/DSB_model/supplementary_files
+unset MODULEPATH
+. /etc/profile.d/modules.sh 
+module load R
+
+tmpdir=~/scratch/$JOB_NAME/$JOB_ID.$SGE_TASK_ID
 mkdir -p $tmpdir
 
 window=0
@@ -57,11 +62,12 @@ scripts=$PROJECTDIR/scripts/circperm_scripts
 echo "Rscript --vanilla --no-save $scripts/run_circular_permutation.R $tmpdir/a.bed $tmpdir/b.bed $output"
 Rscript --vanilla --no-save $scripts/run_circular_permutation.R $tmpdir/a.bed $tmpdir/b.bed $output
 
-done < $BEDB
-
 # Get simple overlap stats
+echo "$scripts/get_overlap_stats.sh $tmpdir/a.bed $tmpdir/b.bed $window $output/overlap_stats.txt"
 $scripts/get_overlap_stats.sh $tmpdir/a.bed $tmpdir/b.bed $window $output/overlap_stats.txt
 
+done < $BEDB
+
 # clean up 
-rm -r $tmpdir
+# rm -r $tmpdir
 
