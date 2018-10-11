@@ -1,0 +1,188 @@
+mybins=scripts
+sv_scripts=$mybins/cancerSV_scripts
+
+
+##############################################################
+# ICGC data
+cd data/cancer_SVcnts
+
+##############################################################
+# DOWNLOAD
+# The SV calls were downloaded from the ICGC website.  You need permission to access these.  
+# See here:
+# https://dcc.icgc.org/projects?filters=%7B%22project%22:%7B%22availableDataTypes%22:%7B%22is%22:%5B%22cnsm%22%5D%7D%7D%7D&projects=%7B%22from%22:1%7D
+# Then click on one of the strips representing a cancer type.
+# This takes you to a page like this:
+# https://dcc.icgc.org/projects/PRAD-US
+# Scroll to the top of the page and click on "Open in DCC Data Releases" link below the "Available Data Types:" Table.
+# This takes you to a page like this:
+# https://dcc.icgc.org/releases/current/Projects/PRAD-US
+# There is a list of files that you can download.
+# I downloaded all of the structural_somatic_mutation.*-*.tsv.gz files 
+# and put them in a directory called structural 
+# They are listed in structural_somatic_mutation_files.list
+
+##############################################################
+# COMBINE
+gzip -dc structural/structural_somatic_mutation.BRCA-EU.tsv.gz | head -1 > tmph
+cat structural/structural_somatic_mutation.*.tsv.gz | gzip -dc | grep -v ^icgc_donor_id | cat tmph - | gzip > structural_somatic_mutation.WGS.tsv.gz
+
+##############################################################
+# Count the number of samples and SV calls per cohort 
+$sv_scripts/make_counts_per_cohort_table_sv.sh
+# This creates counts_per_cohort_sv.txt
+mv counts_per_cohort_sv.txt ICGC_SV_counts_per_cohort.txt
+
+##############################################################
+# PANCANCER: Get DSB counts for pancancer  
+# The commands below create teh panc_realcnts.txt file 
+mkdir -p svseg_beds/panc_wgs
+$sv_scripts/make_svseg_bedfiles.sh structural_somatic_mutation.WGS.tsv.gz svseg_beds/panc_wgs
+ls svseg_beds/panc_wgs/*.bed > segfiles.list
+qsub -t 1-8 -v BEDLIST=segfiles.list -v BINS=../../hg19_50kb_bins.bed -v OUT=panc_rcnts -v $sv_scripts/get_random_bkptcounts_icgc2.sh
+# combine the counts into a single file
+cd panc_rcnts
+cut -f1-4 any.rcnts | sed 's/V4/id/' > tmp
+for f in `ls *.rcnts`; do name=`basename $f .rcnts`; echo $name; cut -f5 $f | sed "s/realcnt/$name/" | paste tmp - > tmp2; mv tmp2 tmp; done
+mv tmp ../panc_realcnts.txt
+# clean up 
+rm -r panc_rcnts
+rm -r svseg_beds/panc_wgs
+
+##############################################################
+# CARCINOMA: Get DSB counts for carcinomas (everything except blood, brain, and bone).
+# The commands below create the carc_realcnts.txt file 
+cd structural 
+cat structural_somatic_mutation.EOPC-DE.tsv.gz \
+	structural_somatic_mutation.LIRI-JP.tsv.gz \
+	structural_somatic_mutation.MELA-AU.tsv.gz \
+	structural_somatic_mutation.OV-AU.tsv.gz \
+	structural_somatic_mutation.PACA-AU.tsv.gz \
+	structural_somatic_mutation.PACA-CA.tsv.gz \
+	structural_somatic_mutation.PAEN-AU.tsv.gz \
+	structural_somatic_mutation.PAEN-IT.tsv.gz \
+	structural_somatic_mutation.PRAD-CA.tsv.gz \
+	structural_somatic_mutation.PRAD-UK.tsv.gz \
+	structural_somatic_mutation.SKCA-BR.tsv.gz \
+	structural_somatic_mutation.BRCA-EU.tsv.gz \
+	structural_somatic_mutation.BRCA-FR.tsv.gz \
+	| zcat -dc | grep -v ^icgc_donor_id | cat tmph - \
+	| gzip > structural_somatic_mutation.carc.tsv.gz
+cd ../
+mkdir -p svseg_beds/carc_wgs
+$sv_scripts/make_svseg_bedfiles.sh structural/structural_somatic_mutation.carc.tsv.gz svseg_beds/carc_wgs
+ls svseg_beds/carc_wgs/*.bed > segfiles.list
+qsub -t 1-8 -v BEDLIST=segfiles.list -v BINS=../../hg19_50kb_bins.bed -v OUT=carc_rcnts -v $sv_scripts/get_random_bkptcounts_icgc2.sh
+# combine the counts into a single file
+cd carc_rcnts
+cut -f1-4 any.rcnts | sed 's/V4/id/' > tmp
+for f in `ls *.rcnts`; do name=`basename $f .rcnts`; echo $name; cut -f5 $f | sed "s/realcnt/$name/" | paste tmp - > tmp2; mv tmp2 tmp; done
+mv tmp ../carc_realcnts.txt
+# clean up 
+rm -r carc_rcnts
+rm -r svseg_beds/carc_wgs
+
+##############################################################
+# BLOOD: Get DSB counts for blood cancers 
+# The commands below create the blood_realcnts.txt file 
+cd structural 
+cat structural_somatic_mutation.CLLE-ES.tsv.gz \
+	structural_somatic_mutation.MALY-DE.tsv.gz \
+	| zcat -dc | grep -v ^icgc_donor_id | cat tmph - \
+	| gzip > structural_somatic_mutation.blood.tsv.gz
+cd ../ 
+mkdir -p svseg_beds/blood_wgs
+$sv_scripts/make_svseg_bedfiles.sh structural/structural_somatic_mutation.blood.tsv.gz svseg_beds/blood_wgs
+ls svseg_beds/blood_wgs/*.bed > segfiles.list
+qsub -t 1-8 -v BEDLIST=segfiles.list -v BINS=../../hg19_50kb_bins.bed -v OUT=blood_rcnts -v $sv_scripts/get_random_bkptcounts_icgc2.sh
+# combine the counts into a single file
+cd blood_rcnts
+cut -f1-4 any.rcnts | sed 's/V4/id/' > tmp
+for f in `ls *.rcnts`; do name=`basename $f .rcnts`; echo $name; cut -f5 $f | sed "s/realcnt/$name/" | paste tmp - > tmp2; mv tmp2 tmp; done
+mv tmp ../blood_realcnts.txt
+# clean up 
+rm -r blood_rcnts
+rm -r svseg_beds/blood_wgs
+
+##############################################################
+# BREAST: Get DSB counts for breast cancers 
+# The commands below create the brca_realcnts.txt file 
+cd structural 
+cat structural_somatic_mutation.BRCA-EU.tsv.gz \
+	structural_somatic_mutation.BRCA-FR.tsv.gz \
+	| zcat -dc | grep -v ^icgc_donor_id | cat tmph - \
+	| gzip > structural_somatic_mutation.brca.tsv.gz
+cd ../ 
+mkdir -p svseg_beds/brca_wgs
+$sv_scripts/make_svseg_bedfiles.sh structural/structural_somatic_mutation.brca.tsv.gz svseg_beds/brca_wgs
+ls svseg_beds/brca_wgs/*.bed > segfiles.list
+qsub -t 1-8 -v BEDLIST=segfiles.list -v BINS=../../hg19_50kb_bins.bed -v OUT=brca_rcnts -v $sv_scripts/get_random_bkptcounts_icgc2.sh
+# combine the counts into a single file
+cd brca_rcnts
+cut -f1-4 any.rcnts | sed 's/V4/id/' > tmp
+for f in `ls *.rcnts`; do name=`basename $f .rcnts`; echo $name; cut -f5 $f | sed "s/realcnt/$name/" | paste tmp - > tmp2; mv tmp2 tmp; done
+mv tmp ../brca_realcnts.txt
+# clean up 
+rm -r brca_rcnts
+rm -r svseg_beds/brca_wgs
+
+
+##############################################################
+# TCGA 
+##############################################################
+# PANCANCER
+# create tcga_bytype_realcnts.txt 
+# TCGA files come in the form TCGA-*.segs.txt 
+# These came from TCGA consortium. 
+# TCGA_DATA_DIR=~/NextGenResources/TCGA_SV_CALLS 
+cd tcga
+find $TCGA_DATA_DIR -name '*.seg.txt' > TCGA_SEG_files.list 
+qsub -v OUT=segfiles $sv_scripts/combine_tcga_segfiles.sh 
+
+cd segfiles 
+head -1 TCGA-THYM.amp.txt > tmph
+cat TCGA-*.del.txt | grep -v ^Sample | cat tmph - > TCGA-PANC.del.txt
+cat TCGA-*.amp.txt | grep -v ^Sample | cat tmph - > TCGA-PANC.amp.txt
+cat TCGA-DLBC.amp.txt TCGA-LAML.amp.txt \
+	| grep -v ^Sample | cat tmph - > TCGA-BLOOD.amp.txt
+cat TCGA-DLBC.del.txt TCGA-LAML.del.txt \
+	| grep -v ^Sample | cat tmph - > TCGA-BLOOD.del.txt
+cat TCGA-CESC.del.txt TCGA-HNSC.del.txt TCGA-LUSC.del.txt \
+	| grep -v ^Sample | cat tmph - > TCGA-SCCA.del.txt
+cat TCGA-CESC.amp.txt TCGA-HNSC.amp.txt TCGA-LUSC.amp.txt \
+	| grep -v ^Sample | cat tmph - > TCGA-SCCA.amp.txt
+cd ../
+
+ls segfiles/TCGA-BLOOD.*.txt > tmpsfiles
+ls segfiles/TCGA-SCCA.*.txt >> tmpsfiles
+ls segfiles/TCGA-BRCA.amp.txt >> tmpsfiles
+ls segfiles/TCGA-BRCA.del.txt >> tmpsfiles
+ls segfiles/TCGA-PANC.*.txt >> tmpsfiles
+ 
+qsub -t 1-8 -v SEGLIST=tmpsfiles -v BINS=../../hg19_50kb_bins.bed -v OUT=rcnts $sv_scripts/get_random_bkptcounts_tcga.sh
+cd rcnts
+head -1 TCGA-BLOOD.amp.rcnts | cut -f1-5 > tmph
+cut -f5 TCGA-BLOOD.amp.rcnts | paste TCGA-BLOOD.del.rcnts - \
+	| sed 1d | awk 'BEGIN{OFS="\t"}{$5=$5 + $8; print $0}' \
+	| cut -f1-5 | cat tmph - > TCGA-BLOOD.all.rcnts
+cut -f5 TCGA-SCCA.amp.rcnts | paste TCGA-SCCA.del.rcnts - \
+	| sed 1d | awk 'BEGIN{OFS="\t"}{$5=$5 + $8; print $0}' \
+	| cut -f1-5 | cat tmph - > TCGA-SCCA.all.rcnts
+cut -f5 TCGA-BRCA.amp.rcnts | paste TCGA-BRCA.del.rcnts - \
+	| sed 1d | awk 'BEGIN{OFS="\t"}{$5=$5 + $8; print $0}' \
+	| cut -f1-5 | cat tmph - > TCGA-BRCA.all.rcnts
+cut -f5 TCGA-PANC.amp.rcnts | paste TCGA-PANC.del.rcnts - \
+	| sed 1d | awk 'BEGIN{OFS="\t"}{$5=$5 + $8; print $0}' \
+	| cut -f1-5 | cat tmph - > TCGA-PANC.all.rcnts
+cut -f1-4 TCGA-BRCA.all.rcnts | sed 's/V4/id/' > tmp
+for f in `ls *.rcnts`; do 
+	name=`basename $f .rcnts`; 
+	echo $name; cut -f5 $f | sed "s/realcnt/$name/" | paste tmp - > tmp2; 
+	mv tmp2 tmp; done
+mv tmp ../tcga_bytype_realcnts.txt
+cd ../
+
+# CLEAN UP
+rm -r segfiles
+rm -r rcnts 
+
