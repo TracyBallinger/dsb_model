@@ -1,4 +1,4 @@
-##############################################
+#############################################
 # README for DSB model study 
 This is a collections of scripts for doing the analysis in "Modelling double strand break susceptibility to interrogate structural variation in cancer" by Ballinger and Bouwman et al. 
 
@@ -8,6 +8,6 @@ scripts/ contains scripts used to do the analysis, which are referenced in the N
 notebooks/ contains iPython notebooks with the R commands used to generate the figures for the manuscript. 
 figures/ contains the figures that went in the manuscript. 
 
-The data.tar.gz file contains all supplementary files for the manuscript.  The NOTES files describe how most of these files were generated and their sources. 
+Data files can be found at XXX, which contains a link to data.tar.gz file.  This archive contains all supplementary data files for the manuscript. 
 
  
